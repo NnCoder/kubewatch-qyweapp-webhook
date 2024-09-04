@@ -1,6 +1,6 @@
 from flask import Flask, request
 import requests
-import pyyaml
+import yaml
 import json
 import os
 import logging

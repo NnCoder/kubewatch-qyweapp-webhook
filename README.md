@@ -7,7 +7,6 @@
 ## 特性
 
 - 支持kubewatch接收到POD状态变更为`created`和`updated`时，进行企业微信群机器人markdown消息发送
-- 还会发一条世界经典格言
 
 ##  文件目录介绍
 
@@ -30,34 +29,16 @@ kubernetes的namespaces应该具有命名规范，比如一个叫做`趣味畅�
 
 这样做的好处是脚本能够识别出各个环境的演示网址，并拼接在markdown中进行企业微信机器人消息推送。
 
-接下来请修改main.py中的project变量：
+接下来请修改application.yml变量：
 ```python
-projects = {
-    # struct is regular(string) => dict
-    'projectA-namespace':{
-        # 企业微信群聊机器人token
-        'token':'AAAAAA-1234-7890-000-123456789000',
-        #环境演示项目的地址 假如只有2个环境，则只需要填写2个演示地址
-        'staging_url':'https://staging.exampleA.com',
-        'production_url':'https://www.exampleA.com'
-    },
-    'projectB-namespace':{
-        'token':'BBBBBB-1234-7890-000-123456789000',
-        'testing_url':'https://testing.exampleB.com',
-        'other_url':'https://other.exampleC.com'
-    }
-}
+'blog-crazyphper-com':
+    'token':'AAAAAA-1234-7890-000-123456789000'
+    'staging_url':'https://blog.staging.crazyphper.com'
+    'production_url':'https://blog.crazyphper.com
 ```
 
-### 2. 设置格言API key
 
-修改main.py中的`tianApiKey`。
-
-这里使用[天行数据](https://www.tianapi.com/apiview/26)的名言警句接口，每天有100次免费API额度。
-
-如果不需要格言功能，可以修改`getMotto()`方法返回你需要的文本内容。
-
-### 3. 部署服务
+### 2. 部署服务
 
 ```shell
 
@@ -73,7 +54,7 @@ kubectl  apply -f deployment.yaml
 
 > M1芯片必须使用[docker buildx build](https://betterprogramming.pub/how-to-actually-deploy-docker-images-built-on-a-m1-macs-with-apple-silicon-a35e39318e97) 和参数 `--platforms linux/amd64`
 
-### 4.测试运行效果
+### 3.测试运行效果
 
 测试用kube-watch 格式JSON
 

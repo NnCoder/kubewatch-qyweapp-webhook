@@ -9,9 +9,7 @@ import time
 
 app = Flask(__name__)
 
-#------------Config part-----------------
-with open('./resource/application.yml', 'r', encoding='utf-8') as f:
-    projects = yaml.load(f.read(), Loader=yaml.FullLoader)
+
 
 # projects = {
 #     """
@@ -58,25 +56,28 @@ class WebhookMessage:
 
 def sendMessage(message):
     "推送webhook消息"
-    if message['eventmeta']['kind'] == 'pod' and message['eventmeta']['reason'] != 'deleted':
-        for namespace in projects:
-            if re.match(namespace,message['eventmeta']['namespace']):
-                playground = WebhookMessage()
-                playground.Time = message['time']
-                playground.Text = message['text']
-                playground.EventMeta = message['eventmeta']
-                playground.Project = projects[namespace]
-                headers = {'Content-Type': 'application/json;charset=utf-8'}
-                body = {
-                    "msgtype": "markdown",
-                    "markdown": {
-                        "content": playground.toString()
+    # ------------Config part-----------------
+    with open('./resource/application.yml', 'r', encoding='utf-8') as f:
+        projects = yaml.load(f.read(), Loader=yaml.FullLoader)
+        if message['eventmeta']['kind'] == 'pod' and message['eventmeta']['reason'] != 'deleted':
+            for namespace in projects:
+                if re.match(namespace,message['eventmeta']['namespace']):
+                    playground = WebhookMessage()
+                    playground.Time = message['time']
+                    playground.Text = message['text']
+                    playground.EventMeta = message['eventmeta']
+                    playground.Project = projects[namespace]
+                    headers = {'Content-Type': 'application/json;charset=utf-8'}
+                    body = {
+                        "msgtype": "markdown",
+                        "markdown": {
+                            "content": playground.toString()
+                        }
                     }
-                }
-                webhook = API+projects[namespace]['token']
-                time.sleep(5)
-                requests.post(webhook, json.dumps(body), headers=headers)
-                logging.warning("==========发送成功==========")
+                    webhook = API+projects[namespace]['token']
+                    time.sleep(5)
+                    requests.post(webhook, json.dumps(body), headers=headers)
+                    logging.warning("==========发送成功==========")
 
 
 @app.route('/',methods=['POST','GET'])

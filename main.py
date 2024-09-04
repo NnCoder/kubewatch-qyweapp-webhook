@@ -10,7 +10,7 @@ import time
 app = Flask(__name__)
 
 #------------Config part-----------------
-with open('./application.yml', 'r', encoding='utf-8') as f:
+with open('./resource/application.yml', 'r', encoding='utf-8') as f:
     projects = yaml.load(f.read(), Loader=yaml.FullLoader)
 
 # projects = {

@@ -21,6 +21,8 @@ jobs:
          username: ${{ secrets.DOCKER_USERNAME }}
         # Password or personal access token used to log against the Docker registry
          password: ${{ secrets.DOCKER_PASSWORD }}
+        # Server address of Docker registry. If not set then will default to Docker Hub
+         registry: ${{ secrets.DOCKER_REGISTRY }}
     - name: Build and push Docker images
       uses: docker/build-push-action@v6.7.0
       with:

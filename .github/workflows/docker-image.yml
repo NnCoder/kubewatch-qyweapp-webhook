@@ -27,4 +27,4 @@ jobs:
       uses: docker/build-push-action@v6.7.0
       with:
        push: true
-       tags: baiguokeji-docker.pkg.coding.net/khfwydiep/tools/kubewarch-qyweapp-webhook:latest
+       tags: ${{ secrets.DOCKER_TAG }}:latest

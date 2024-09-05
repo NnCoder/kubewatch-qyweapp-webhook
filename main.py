@@ -44,16 +44,12 @@ class WebhookMessage:
 
     def toString(self):
         "返回需要发送的文本"
-        #根据namespace后缀判断环境
-        env = self.EventMeta['namespace'].split('-')[-1]
         result = "创建" if self.EventMeta['reason'] != 'created' else "更新"
-        return ('# <font color=\"info\">'+self.getProgramName()+'</font>程序已部署 \n '
-                '> 运行环境：['+env.capitalize()+']('+self.Project[env+'_url']+') \n '
-                '> 部署结果：<font color=\"comment\">'+result+'</font>')
+        return '# <font color=\"info\">'+self.getProgramName()+ '</font>程序已' + result
 
     def getProgramName(self):
         fullName = self.EventMeta['name'].split('/')[-1]
-        return fullName.split('-')[0]
+        return fullName
 
 
 def sendMessage(message):
@@ -74,10 +70,11 @@ def sendMessage(message):
                         "content": playground.toString()
                     }
                 }
+
                 webhook = API+projects[namespace]['token']
-                time.sleep(5)
+                time.sleep(1)
                 requests.post(webhook, json.dumps(body), headers=headers)
-                logging.warning("==========发送成功==========")
+                logging.info("==========发送成功==========")
 
 
 @app.route('/',methods=['POST','GET'])

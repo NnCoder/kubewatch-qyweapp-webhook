@@ -83,6 +83,7 @@ def index():
         return ('wow,"GET"? realy?',200,None)
     else:
         message = json.loads(request.data)
+        logging.info("access req json :{}", message)
         sendMessage(message)
         return ('send success', 200, None)
 

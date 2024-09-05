@@ -27,4 +27,4 @@ jobs:
       uses: docker/build-push-action@v6.7.0
       with:
        push: true
-       tags: ${{ secrets.DOCKER_TAG }}:latest
+       tags: ${{ secrets.DOCKER_TAG }}:1.0.0

@@ -2,7 +2,6 @@ from flask import Flask, request
 import requests
 import yaml
 import json
-import os
 import logging
 import re
 import time
@@ -11,7 +10,6 @@ app = Flask(__name__)
 
 
 # ------------Config part-----------------
-projects = {}
 with open('./resource/application.yml', 'r', encoding='utf-8') as f:
     global projects
     projects = yaml.load(f.read(), Loader=yaml.FullLoader)

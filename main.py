@@ -4,6 +4,7 @@ import json
 import logging
 import re
 import time
+import asyncio
 from kubernetes_asyncio import client, config, watch
 
 
@@ -74,20 +75,20 @@ def sendMessage(message):
                 requests.post(webhook, json.dumps(body), headers=headers)
                 logging.info("==========发送成功==========")
 
-def k8sPod():
+async def k8sPod():
     v1 = client.CoreV1Api()
     for ns in projects:
-        logging.info("watch %s" % ns)
-        with watch.Watch().stream(v1.list_namespaced_pod(namespace=ns)) as stream:
-            for event in stream:
+        logging.info("namespace: %s" % ns)
+        async with watch.Watch().stream(v1.list_namespaced_pod(namespace=ns)) as stream:
+            async for event in stream:
                 logging.info("Event: %s %s %s %s" % (
                     event['type'], event['object'].kind, event['object'].metadata.name, event['object'].spec.node_name))
 
 
 if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
     # 获取API的CoreV1Api版本对象
     config.load_incluster_config()
-    while True:
-        k8sPod()
-        time.sleep(5)
-
+    tasks = [asyncio.ensure_future(globals()['k8sPod']())]
+    loop.run_until_complete(asyncio.wait(tasks))
+    loop.close()

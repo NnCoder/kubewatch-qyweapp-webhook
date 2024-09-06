@@ -1,12 +1,11 @@
-from flask import Flask, request
 import requests
 import yaml
 import json
 import logging
 import re
 import time
-
-app = Flask(__name__)
+import asyncio
+from kubernetes_asyncio import client, config, watch
 
 
 # ------------Config part-----------------
@@ -76,18 +75,19 @@ def sendMessage(message):
                 requests.post(webhook, json.dumps(body), headers=headers)
                 logging.info("==========发送成功==========")
 
+async def k8sPod():
+    v1 = client.CoreV1Api()
+    for ns in projects:
+        async with watch.Watch().stream(v1.list_namespaced_pod(namespace=ns)) as stream:
+            async for event in stream:
+                logging.info("Event: %s %s %s %s" % (
+                    event['type'], event['object'].kind, event['object'].metadata.name, event['object'].spec.node_name))
 
-@app.route('/',methods=['POST','GET'])
-def index():
-    if request.method == 'GET':
-        return ('wow,"GET"? realy?',200,None)
-    else:
-        message = json.loads(request.data)
-        logging.info("access req json :{}", message)
-        sendMessage(message)
-        return ('send success', 200, None)
 
 if __name__ == '__main__':
-    # 打印运行配置
-    print(app.config)
-    app.run(port=8080,host="0.0.0.0")
+    loop = asyncio.get_event_loop()
+    # 获取API的CoreV1Api版本对象
+    config.load_incluster_config()
+    tasks = [globals()['k8sPod']]
+    loop.run_until_complete(asyncio.wait(tasks))
+    loop.close()

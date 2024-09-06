@@ -1,4 +1,7 @@
-blog-crazyphper-com:
-   token: AAAAAA-1234-7890-000-123456789000
-   staging_url: https://blog.staging.crazyphper.com
-   production_url: https://blog.crazyphper.com
+namespace: blog-crazyphper-com
+token: AAAAAA-1234-7890-000-123456789000
+env: test
+dryRun: true
+notifyPending: true
+ignorePods:
+  - 'some-pod'

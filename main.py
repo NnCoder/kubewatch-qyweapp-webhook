@@ -2,8 +2,6 @@ import requests
 import yaml
 import json
 import logging
-import re
-import time
 from kubernetes import client, config, watch
 
 
@@ -15,13 +13,9 @@ with open('./resource/application.yml', 'r', encoding='utf-8') as f:
 #     """
 #     在这里配置kubernetes中的namespace前缀、微信群机器人token、环境地址
 #     比如命名空间是blog-crazyphper-com-staging和blog-crazyphper-com-production，那么就：
-#     'blog-crazyphper-com':{
-#         'token':'AAAAAA-1234-7890-000-123456789000',
-#         'staging_url':'https://blog.staging.crazyphper.com',
-#         'production_url':'https://blog.crazyphper.com'
-#     }
+#
 #     """
-#     'your-namespace-prefix':{
+#     'namespace':{
 #         'token':'',
 #         'testing_url':''
 #     }
@@ -30,63 +24,101 @@ with open('./resource/application.yml', 'r', encoding='utf-8') as f:
 #------------Config part end-----------------
 
 API = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key='
-class WebhookMessage:
-    def __init__(self):
-        self.EventMeta = {}
-        self.Text = ''
-        self.Project = [i for i in projects.values()][0]
-        self.Time = ''
+PODS = {}
+PENDING_TEXT = '''CD部署任务通知⏳
+>命名空间：<font color="info">{namespace}</font>
+>环境：<font color="info">{env}</font>
+>Pod名称：<font color="info">{pod_name}</font>
+>镜像版本：<font color="info">{image_tag}</font>
+>任务状态：<font color="warning">部署中...</font>'''
 
-    def __str__(self):
-        return self.toString()
-
-    def toString(self):
-        "返回需要发送的文本"
-        result = "创建" if self.EventMeta['reason'] != 'created' else "更新"
-        return '# <font color=\"info\">'+self.getProgramName()+ '</font>程序已' + result
-
-    def getProgramName(self):
-        fullName = self.EventMeta['name'].split('/')[-1]
-        return fullName
-
-
-def sendMessage(message):
+RUNNING_TEXT = '''CD部署任务通知✅
+>命名空间：<font color="info">{namespace}</font>
+>环境：<font color="info">{env}</font>
+>Pod名称：<font color="info">{pod_name}</font>
+>镜像版本：<font color="info">{image_tag}</font>
+>任务状态：<font color="info">已部署</font>'''
+def send_message(namespace, pod_name: str, image_tag, is_pending):
     "推送webhook消息"
     global projects
-    if message['eventmeta']['kind'] == 'pod' and message['eventmeta']['reason'] != 'deleted':
-        for namespace in projects:
-            if re.match(namespace,message['eventmeta']['namespace']):
-                playground = WebhookMessage()
-                playground.Time = message['time']
-                playground.Text = message['text']
-                playground.EventMeta = message['eventmeta']
-                playground.Project = projects[namespace]
-                headers = {'Content-Type': 'application/json;charset=utf-8'}
-                body = {
-                    "msgtype": "markdown",
-                    "markdown": {
-                        "content": playground.toString()
-                    }
-                }
+    #判断是否pending状态也通知
+    if is_pending and not projects.get('notifyPending', False):
+       return
+    #判断是否在忽略的pod内
+    ignore_pods = projects.get('ignorePods', [])
+    for pod in ignore_pods:
+        if pod_name.index(pod) != -1:
+            return
 
-                webhook = API+projects[namespace]['token']
-                time.sleep(1)
-                requests.post(webhook, json.dumps(body), headers=headers)
-                logging.info("==========发送成功==========")
+    text = PENDING_TEXT if is_pending else RUNNING_TEXT
+    text = text.format(namespace=namespace, env=projects['env'], pod_name=pod_name, image_tag=image_tag)
+    headers = {'Content-Type': 'application/json;charset=utf-8'}
+    body = {
+        "msgtype": "markdown",
+        "markdown": {
+            "content": text
+        }
+    }
+    if projects['dryRun']:
+        print(json.dumps(body))
+    else:
+        webhook = API+projects['token']
+        requests.post(webhook, json.dumps(body), headers=headers)
+        logging.info("==========发送成功==========")
 
 def pods():
+    global projects
     v1 = client.CoreV1Api()
-    for ns in projects:
-        logging.info("namespace: %s" % ns)
-        ret = v1.list_namespaced_pod(ns)
-        print("pods kind: %s \n" % ret.kind)
-        for item in ret.items:
-            print(item.metadata.name + "\t" + item.status.phase)
+    w = watch.Watch()
+    client_watch = w.stream(v1.list_namespaced_pod, namespace=projects['namespace'])
+    for event in client_watch:
+        deal_pod_event(event)
 
+
+def deal_pod_event(event):
+    # Event: ADDED Pod blog-crazyphper-com-74c58d9d4d-dk5n9 101.x0x.3x.4x Running
+    namespace = event['object'].metadata.namespace
+    containers = event['object'].spec.containers
+    # 获取镜像名及版本
+    image_tag = ''
+    for container in containers:
+        if container.name != 'istio-proxy':
+            # 截取最后一个  /  后的字符串
+            image_tag = container.image.split('/')[-1]
+
+    # 获取容器是否启动成功
+    ready_status = ''
+    conditions = event['object'].status.conditions
+    # 修复conditions为NoneType问题
+    if conditions is not None:
+        for condition in conditions:
+            if condition.type == 'Ready':
+                ready_status = condition.status
+    pod_name = event['object'].metadata.name
+    pod_status_phase = event['object'].status.phase
+    # The type of event such as "ADDED", "DELETED"
+    event_type = event['type']
+    if event_type == 'ADDED':
+        PODS.setdefault(pod_name, pod_status_phase)
+        # 如果在部署中，提示在部署
+        if pod_status_phase == 'Pending':
+            send_message(namespace=namespace, pod_name=pod_name, image_tag=image_tag, is_pending=True)
+    if event_type == 'MODIFIED':
+        his_pod_status = PODS.get(pod_name)
+        if his_pod_status is not None and his_pod_status == 'Pending':
+            if ready_status == 'True':
+                PODS[pod_name] = pod_status_phase
+                #从创建态到Ready态 - 发送消息
+                send_message(namespace=namespace, pod_name=pod_name, image_tag=image_tag, is_pending=False)
+    if event_type == 'DELETED':
+        PODS.pop(pod_name)
+    print("Event: %s %s %s %s %s, image_tag: %s, ready_status: %s" % (
+        event_type, event['object'].kind, pod_name, event['object'].spec.node_name,
+        event['object'].status.phase, image_tag, ready_status))
+
+    # sendMessage(event)
 if __name__ == '__main__':
     config.load_incluster_config()
-    #每10秒读取一次
-    while True:
-        pods()
-        time.sleep(10)
+    pods()
+
 

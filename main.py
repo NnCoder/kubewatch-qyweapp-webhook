@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import time
-from kubernetes import client, config
+from kubernetes import client, config, watch
 
 
 # ------------Config part-----------------
@@ -78,11 +78,10 @@ def k8sPod():
     v1 = client.CoreV1Api()
     for ns in projects:
         logging.info("namespace: %s" % ns)
-        stream = v1.list_namespaced_pod(ns)
-        for event in stream:
+        w = watch.Watch()
+        for event in w.stream(v1.list_namespaced_pod, ns, _request_timeout=60):
             logging.info("Event: %s %s %s %s" % (
                 event['type'], event['object'].kind, event['object'].metadata.name, event['object'].spec.node_name))
-
 
 if __name__ == '__main__':
     config.load_incluster_config()

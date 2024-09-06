@@ -85,5 +85,8 @@ def pods():
 
 if __name__ == '__main__':
     config.load_incluster_config()
-    pods()
+    #每10秒读取一次
+    while True:
+        pods()
+        time.sleep(10)
 

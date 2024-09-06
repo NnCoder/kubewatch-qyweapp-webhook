@@ -74,16 +74,16 @@ def sendMessage(message):
                 requests.post(webhook, json.dumps(body), headers=headers)
                 logging.info("==========发送成功==========")
 
-def k8sPod():
+def events():
     v1 = client.CoreV1Api()
     for ns in projects:
         logging.info("namespace: %s" % ns)
-        ret = v1.list_namespaced_pod(ns)
-        for i in ret.items:
-            print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
-            print(json.dumps(i))
+        ret = v1.list_namespaced_event(ns)
+        print("events kind: %s \n" % ret.kind)
+        for item in ret.items:
+            print(item.to_str())
 
 if __name__ == '__main__':
     config.load_incluster_config()
-    k8sPod()
+    events()
 

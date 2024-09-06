@@ -88,6 +88,6 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     # 获取API的CoreV1Api版本对象
     config.load_incluster_config()
-    tasks = [globals()['k8sPod']]
+    tasks = [globals()['k8sPod']()]
     loop.run_until_complete(asyncio.wait(tasks))
     loop.close()

@@ -79,7 +79,7 @@ async def k8sPod():
     v1 = client.CoreV1Api()
     for ns in projects:
         logging.info("namespace: %s" % ns)
-        async with watch.Watch().stream(v1.list_namespaced_pod(namespace=ns)) as stream:
+        async with watch.Watch().stream(lambda: v1.list_namespaced_pod(namespace=ns)) as stream:
             async for event in stream:
                 logging.info("Event: %s %s %s %s" % (
                     event['type'], event['object'].kind, event['object'].metadata.name, event['object'].spec.node_name))

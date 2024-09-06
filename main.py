@@ -81,7 +81,7 @@ def pods():
         ret = v1.list_namespaced_pod(ns)
         print("pods kind: %s \n" % ret.kind)
         for item in ret.items:
-            print(item.to_str())
+            print(item.metadata.name + "\t" + item.status.phase)
 
 if __name__ == '__main__':
     config.load_incluster_config()

@@ -78,10 +78,10 @@ def k8sPod():
     v1 = client.CoreV1Api()
     for ns in projects:
         logging.info("namespace: %s" % ns)
-        w = watch.Watch()
-        for event in w.stream(v1.list_namespaced_pod, ns, _request_timeout=60):
-            logging.info("Event: %s %s %s %s" % (
-                event['type'], event['object'].kind, event['object'].metadata.name, event['object'].spec.node_name))
+        ret = v1.list_namespaced_pod(ns)
+        for i in ret.items:
+            print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+            print(json.dumps(i))
 
 if __name__ == '__main__':
     config.load_incluster_config()

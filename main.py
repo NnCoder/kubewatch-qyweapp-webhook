@@ -60,7 +60,7 @@ def send_message(namespace, pod_name: str, image_tag, is_pending):
         }
     }
     if projects['dryRun']:
-        print(json.dumps(body))
+        logging.info(json.dumps(body))
     else:
         webhook = API+projects['token']
         requests.post(webhook, json.dumps(body), headers=headers)
@@ -112,7 +112,7 @@ def deal_pod_event(event):
                 send_message(namespace=namespace, pod_name=pod_name, image_tag=image_tag, is_pending=False)
     if event_type == 'DELETED':
         PODS.pop(pod_name)
-    print("Event: %s %s %s %s %s, image_tag: %s, ready_status: %s" % (
+    logging.info("Event: %s %s %s %s %s, image_tag: %s, ready_status: %s" % (
         event_type, event['object'].kind, pod_name, event['object'].spec.node_name,
         event['object'].status.phase, image_tag, ready_status))
 

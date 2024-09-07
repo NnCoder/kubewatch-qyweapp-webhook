@@ -98,6 +98,10 @@ def deal_pod_event(event):
     pod_status_phase = event['object'].status.phase
     # The type of event such as "ADDED", "DELETED"
     event_type = event['type']
+    logging.info("Event: %s %s %s %s %s, image_tag: %s, ready_status: %s" % (
+        event_type, event['object'].kind, pod_name, event['object'].spec.node_name,
+        event['object'].status.phase, image_tag, ready_status))
+
     if event_type == 'ADDED':
         PODS.setdefault(pod_name, pod_status_phase)
         # 如果在部署中，提示在部署
@@ -112,9 +116,7 @@ def deal_pod_event(event):
                 send_message(namespace=namespace, pod_name=pod_name, image_tag=image_tag, is_pending=False)
     if event_type == 'DELETED':
         PODS.pop(pod_name)
-    logging.info("Event: %s %s %s %s %s, image_tag: %s, ready_status: %s" % (
-        event_type, event['object'].kind, pod_name, event['object'].spec.node_name,
-        event['object'].status.phase, image_tag, ready_status))
+
 
     # sendMessage(event)
 if __name__ == '__main__':

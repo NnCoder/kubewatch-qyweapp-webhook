@@ -38,6 +38,11 @@ RUNNING_TEXT = '''CD部署任务通知🔨
 >Pod名称：<font color="info">{pod_name}</font>
 >镜像版本：<font color="info">{image_tag}</font>
 >任务状态：<font color="info">已部署</font>'''
+
+# 设置logging的等级以及打印格式
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+
 def send_message(namespace, pod_name: str, image_tag, is_pending):
     "推送webhook消息"
     global projects
@@ -83,8 +88,8 @@ def deal_pod_event(event):
     image_tag = ''
     for container in containers:
         if container.name != 'istio-proxy':
-            # 截取最后一个  /  后的字符串
-            image_tag = container.image.split('/')[-1]
+            # 截取最后一个  : 后的字符串
+            image_tag = container.image.split(':')[-1]
 
     # 获取容器是否启动成功
     ready_status = ''

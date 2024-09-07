@@ -125,6 +125,9 @@ def deal_pod_event(event):
         # 如果在部署中，提示在部署
         if pod_status_phase == 'Pending':
             send_message(namespace=namespace, pod_name=pod_name, image_tag=image_tag, is_pending=True)
+        elif pod_status_phase == 'Running':
+            pending_cache[image_tag] = True
+            ready_cache[image_tag] = True
     if event_type == 'MODIFIED':
         his_pod_status = PODS.get(pod_name)
         if his_pod_status is not None and his_pod_status == 'Pending':

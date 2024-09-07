@@ -32,7 +32,7 @@ PENDING_TEXT = '''CD部署任务通知⏳
 >镜像版本：<font color="info">{image_tag}</font>
 >任务状态：<font color="warning">部署中...</font>'''
 
-RUNNING_TEXT = '''CD部署任务通知✅
+RUNNING_TEXT = '''CD部署任务通知🔨
 >命名空间：<font color="info">{namespace}</font>
 >环境：<font color="info">{env}</font>
 >Pod名称：<font color="info">{pod_name}</font>

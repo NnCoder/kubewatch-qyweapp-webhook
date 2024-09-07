@@ -2,6 +2,7 @@ import requests
 import yaml
 import json
 import logging
+from cachetools import LRUCache
 from kubernetes import client, config, watch
 
 
@@ -11,14 +12,13 @@ with open('./resource/application.yml', 'r', encoding='utf-8') as f:
     projects = yaml.load(f.read(), Loader=yaml.FullLoader)
 # projects = {
 #     """
-#     在这里配置kubernetes中的namespace前缀、微信群机器人token、环境地址
+#     在这里配置kubernetes中的namespace、微信群机器人token、环境地址
 #     比如命名空间是blog-crazyphper-com-staging和blog-crazyphper-com-production，那么就：
 #
 #     """
-#     'namespace':{
-#         'token':'',
-#         'testing_url':''
-#     }
+#     'namespace':
+#     'token':'',
+#
 # }
 
 #------------Config part end-----------------
@@ -43,6 +43,10 @@ RUNNING_TEXT = '''CD部署任务通知🔨
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
+# 创建LRU缓存
+pending_cache = LRUCache(maxsize=100)
+ready_cache = LRUCache(maxsize=100)
+
 def send_message(namespace, pod_name: str, image_tag, is_pending):
     "推送webhook消息"
     global projects
@@ -54,9 +58,15 @@ def send_message(namespace, pod_name: str, image_tag, is_pending):
     for pod in ignore_pods:
         if pod in pod_name:
             return
+    cache = pending_cache if is_pending else ready_cache
+    #判断镜像是否已通知过
+    had_been_send_message = cache.get(image_tag)
+    if had_been_send_message is not None:
+        return
 
+    only_tag = image_tag.split(":")[-1]
     text = PENDING_TEXT if is_pending else RUNNING_TEXT
-    text = text.format(namespace=namespace, env=projects['env'], pod_name=pod_name, image_tag=image_tag)
+    text = text.format(namespace=namespace, env=projects['env'], pod_name=pod_name, image_tag=only_tag)
     headers = {'Content-Type': 'application/json;charset=utf-8'}
     body = {
         "msgtype": "markdown",
@@ -69,6 +79,8 @@ def send_message(namespace, pod_name: str, image_tag, is_pending):
     else:
         webhook = API+projects['token']
         requests.post(webhook, json.dumps(body), headers=headers)
+        #缓存已经通知部署成功的镜像
+        cache[image_tag] = True
         logging.info("==========发送成功==========")
 
 def pods():
@@ -89,7 +101,7 @@ def deal_pod_event(event):
     for container in containers:
         if container.name != 'istio-proxy':
             # 截取最后一个  : 后的字符串
-            image_tag = container.image.split(':')[-1]
+            image_tag = container.image.split('/')[-1]
 
     # 获取容器是否启动成功
     ready_status = ''

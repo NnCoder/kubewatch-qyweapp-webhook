@@ -1,22 +1,7 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: wechat-webhook
-  namespace: kube-watch
-  labels:
-    app: wechat-webhook
-spec:
-  ports:
-    - name: wechat-webhook
-      port: 8080
-      targetPort: 8080
-  selector:
-    app: wechat-webhook
----
 apiVersion: apps/v1
 kind: Deployment 
 metadata:
-  name: wechat-webhook
+  name: kubewatch-qyweapp
   namespace: kube-watch
   labels:
     app: wechat-webhook
@@ -24,19 +9,16 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: wechat-webhook
+      app: kubewatch-qyweapp
   template:
     metadata:
       labels:
-        app: wechat-webhook
+        app: kubewatch-qyweapp
     spec:
       imagePullSecrets:
       - name: regcred
       containers:
-        - name: wechat-webhook
-          image: your-private-harbor-com/webhook/qyweapp-kubewatch:latest #请修改为您自己的镜像地址
+        - name: kubewatch-qyweapp
+          image: your-private-harbor-com/tools/kubewatch-qyweapp:latest #请修改为您自己的镜像地址
           imagePullPolicy: Always
-          ports:
-            - name: wechat-webhook
-              containerPort: 8080
 

@@ -62,6 +62,7 @@ def send_message(namespace, pod_name: str, image_tag, is_pending):
     #判断镜像是否已通知过
     had_been_send_message = cache.get(image_tag)
     if had_been_send_message is not None:
+        logging.info("%s had been send message, skip." % image_tag)
         return
 
     only_tag = image_tag.split(":")[-1]
@@ -81,7 +82,7 @@ def send_message(namespace, pod_name: str, image_tag, is_pending):
         requests.post(webhook, json.dumps(body), headers=headers)
         #缓存已经通知部署成功的镜像
         cache[image_tag] = True
-        logging.info("==========发送成功==========")
+        logging.info("pod：%s ==========发送成功==========" % pod_name)
 
 def pods():
     global projects

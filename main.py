@@ -47,7 +47,7 @@ def send_message(namespace, pod_name: str, image_tag, is_pending):
     #判断是否在忽略的pod内
     ignore_pods = projects.get('ignorePods', [])
     for pod in ignore_pods:
-        if pod_name.index(pod) != -1:
+        if pod in pod_name:
             return
 
     text = PENDING_TEXT if is_pending else RUNNING_TEXT
